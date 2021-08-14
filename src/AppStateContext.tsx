@@ -2,7 +2,7 @@ import React, { createContext, useContext, useReducer } from "react";
 import { v4 } from "uuid";
 
 import { findItemIndexById } from "./utils/findItemIndexById";
-import { moveItem } from "./moveItem";
+import { moveItem } from "./utils/moveItem";
 import { DragItem } from "./DragItem";
 
 interface Task {
@@ -18,7 +18,7 @@ interface List {
 
 export interface AppState {
   draggedItem: DragItem | undefined;
-  lists: List[]
+  lists: List[];
 }
 
 const appData: AppState = {
@@ -63,11 +63,17 @@ export const AppStateProvider = ({ children }: React.PropsWithChildren<{}>) => {
   )
 }
 
-type Action =
+type Action = |
   { type: "ADD_LIST"; payload: string; } |
-  { type: "ADD_TASK"; payload: { text: string; taskId: string; } } |
+  { type: "ADD_TASK"; payload: { text: string; listId: string; } } |
   { type: "MOVE_LIST"; payload: { dragIndex: number; hoverIndex: number; } } |
-  { type: "SET_DRAGGED_ITEM"; payload: DragItem | undefined; }
+  { type: "SET_DRAGGED_ITEM"; payload: DragItem | undefined; } |
+  { type: "MOVE_TASK"; payload: {
+    dragIndex: number;
+    hoverIndex: number;
+    sourceColumn: string;
+    targetColumn: string;
+  } }
 
 const appStateReducer = (state: AppState, action: Action): AppState => {
   switch (action.type) {
@@ -84,7 +90,7 @@ const appStateReducer = (state: AppState, action: Action): AppState => {
     case "ADD_TASK": {
       const targetLaneIndex = findItemIndexById(
         state.lists,
-        action.payload.taskId
+        action.payload.listId
       )
       state.lists[targetLaneIndex].tasks.push({
         id: v4(),
@@ -103,6 +109,17 @@ const appStateReducer = (state: AppState, action: Action): AppState => {
       return {
         ...state
       }
+    }
+
+    case "MOVE_TASK": {
+      const { dragIndex, hoverIndex, sourceColumn, targetColumn } = action.payload;
+      const sourceLaneIndex = findItemIndexById(state.lists, sourceColumn);
+      const targetLaneIndex = findItemIndexById(state.lists, targetColumn);
+      const item = state.lists[sourceLaneIndex].tasks.splice(dragIndex, 1)[0];
+
+      state.lists[targetLaneIndex].tasks.splice(hoverIndex, 0, item);
+
+      return { ...state }
     }
 
     case "SET_DRAGGED_ITEM": {
