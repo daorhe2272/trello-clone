@@ -5,6 +5,7 @@ import { findItemIndexById } from "./utils/findItemIndexById";
 import { moveItem } from "./utils/moveItem";
 import { DragItem } from "./DragItem";
 import { save } from "./api";
+import { withData } from "./withData";
 
 interface Task {
   id: string
@@ -52,20 +53,6 @@ const AppStateContext = createContext<AppStateContextProps>({} as AppStateContex
 
 export const useAppState = () => {
   return useContext(AppStateContext);
-}
-
-export const AppStateProvider = ({ children }: React.PropsWithChildren<{}>) => {
-  const [state, dispatch] = useReducer(appStateReducer, appData);
-
-  useEffect(() => {
-    save(state)
-  }, [state]);
-
-  return (
-    <AppStateContext.Provider value={{ state, dispatch }}>
-      {children}
-    </AppStateContext.Provider>
-  )
 }
 
 type Action = |
@@ -136,3 +123,17 @@ const appStateReducer = (state: AppState, action: Action): AppState => {
     }
   }
 }
+
+export const AppStateProvider = withData(({ children, initialState }: React.PropsWithChildren<{initialState: AppState}>) => {
+  const [state, dispatch] = useReducer(appStateReducer, initialState);
+
+  useEffect(() => {
+    save(state)
+  }, [state]);
+
+  return (
+    <AppStateContext.Provider value={{ state, dispatch }}>
+      {children}
+    </AppStateContext.Provider>
+  )
+})
